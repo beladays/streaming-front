@@ -1,86 +1,104 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
 import "./Home.css";
 
 function Home() {
   const [videos, setVideos] = useState([]);
-  const [erro, setErro] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState(null);
 
-  
+  // 🔹 Buscar vídeos
   useEffect(() => {
-    carregarVideos();
+    async function fetchVideos() {
+      try {
+        const { data } = await axios.get("http://localhost:3000/videos");
+        setVideos(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    fetchVideos();
   }, []);
 
-  async function carregarVideos() {
-    try {
-      const res = await axios.get("http://localhost:3000/videos");
-      setVideos(res.data);
-      setErro(false);
-    } catch (err) {
-      console.error(err);
-      setErro(true);
-    }
-  }
-
-  // upar
+  // 🔹 Upload com URL assinada
   async function handleUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      // url
-      const res = await axios.post(
+      // 1️⃣ pegar URL assinada
+      const { data } = await axios.post(
         "http://localhost:3000/videos/upload-url",
         {
           fileName: file.name,
-          contentType: file.type || "video/mp4",
+          contentType: file.type,
         }
       );
 
-      const { url } = res.data;
+      const { url } = data;
 
-      //  storage
-      await axios.put(url, file, {
+      // 2️⃣ enviar arquivo direto pro S3 (fetch evita headers extras do axios)
+      const response = await fetch(url, {
+        method: "PUT",
+        body: file,
         headers: {
-          "Content-Type": file.type || "video/mp4",
+          "Content-Type": file.type,
         },
       });
 
-      alert("Upload feito!");
+      if (!response.ok) {
+        throw new Error(`Erro no upload: ${response.status}`);
+      }
 
-      // atua
-      await carregarVideos();
+      alert("Upload feito 🚀");
 
-    } catch (err) {
-      console.error("ERRO COMPLETO:", err);
-      alert("Erro no upload (veja o console)");
+      // 🔄 atualizar lista sem reload
+      const updatedVideos = await axios.get("http://localhost:3000/videos");
+      setVideos(updatedVideos.data);
+
+    } catch (error) {
+      console.error(error);
+      alert("Erro no upload");
     }
   }
 
   return (
     <div className="container">
-      <h1 className="title"> Plataforma de Streaming</h1>
+      <h1 className="title">🎬 Plataforma de Streaming</h1>
 
       <div className="uploadBox">
         <h3>Upload de vídeo</h3>
-        <input type="file" onChange={handleUpload} />
+        <input type="file" accept="video/*" onChange={handleUpload} />
       </div>
+
+      {/* 🔹 Player de vídeo */}
+      {selectedVideo && (
+        <div className="playerBox">
+          <h3>▶️ {selectedVideo.name}</h3>
+          <video
+            controls
+            autoPlay
+            width="100%"
+            src={selectedVideo.url}
+            onError={() => alert("Erro ao carregar o vídeo")}
+          />
+          <button onClick={() => setSelectedVideo(null)}>✖ Fechar</button>
+        </div>
+      )}
 
       <div className="listBox">
         <h3>Lista de vídeos</h3>
 
-        {erro && <p>Erro ao carregar vídeos</p>}
-
-        {videos.length === 0 && !erro && (
-          <p>Nenhum vídeo encontrado</p>
-        )}
+        {videos.length === 0 && <p>Nenhum vídeo encontrado</p>}
 
         {videos.map((v, i) => (
-          <div key={i} className="videoItem">
-            <Link to={`/video/${v.name}`} state={v}>
-              {v.name}
-            </Link>
+          <div
+            key={i}
+            className="videoItem"
+            onClick={() => setSelectedVideo(v)}
+            style={{ cursor: "pointer" }}
+          >
+            🎬 {v.name}
           </div>
         ))}
       </div>
@@ -89,3 +107,4 @@ function Home() {
 }
 
 export default Home;
+
