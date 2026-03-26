@@ -6,7 +6,7 @@ function Home() {
   const [videos, setVideos] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
 
-  // 🔹 Buscar vídeos
+  //  Buscar 
   useEffect(() => {
     async function fetchVideos() {
       try {
@@ -20,13 +20,13 @@ function Home() {
     fetchVideos();
   }, []);
 
-  // 🔹 Upload com URL assinada
+  // upar
   async function handleUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      // 1️⃣ pegar URL assinada
+      // pegar url
       const { data } = await axios.post(
         "http://localhost:3000/videos/upload-url",
         {
@@ -37,7 +37,7 @@ function Home() {
 
       const { url } = data;
 
-      // 2️⃣ enviar arquivo direto pro S3 (fetch evita headers extras do axios)
+      // enviar p b
       const response = await fetch(url, {
         method: "PUT",
         body: file,
@@ -50,9 +50,9 @@ function Home() {
         throw new Error(`Erro no upload: ${response.status}`);
       }
 
-      alert("Upload feito 🚀");
+      alert("Upload feito!");
 
-      // 🔄 atualizar lista sem reload
+      // att lista
       const updatedVideos = await axios.get("http://localhost:3000/videos");
       setVideos(updatedVideos.data);
 
@@ -64,14 +64,14 @@ function Home() {
 
   return (
     <div className="container">
-      <h1 className="title">🎬 Plataforma de Streaming</h1>
+      <h1 className="title"> Plataforma de Streaming</h1>
 
       <div className="uploadBox">
         <h3>Upload de vídeo</h3>
         <input type="file" accept="video/*" onChange={handleUpload} />
       </div>
 
-      {/* 🔹 Player de vídeo */}
+      {/* player */} 
       {selectedVideo && (
         <div className="playerBox">
           <h3>▶️ {selectedVideo.name}</h3>
